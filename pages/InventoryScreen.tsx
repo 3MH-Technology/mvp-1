@@ -1,8 +1,9 @@
 
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext, useEffect, useMemo } from 'react';
 import { DataContext } from '../App';
 import { Product } from '../types';
 import Modal from '../components/Modal';
+import { SearchIcon } from '../components/Icons';
 
 const InventoryForm: React.FC<{
     onSubmit: (product: Omit<Product, 'id' | 'imageUrl'>, id?: string) => void;
@@ -29,7 +30,7 @@ const InventoryForm: React.FC<{
                 supplierId: productToEdit.supplierId || '',
             });
         } else {
-            setFormData({ name: '', price: '', cost: '', stock: '', lowStockThreshold: '', supplierId: '' });
+            setFormData({ name: '', price: '', cost: '', stock: '', lowStockThreshold: '5', supplierId: '' });
         }
     }, [productToEdit]);
     
@@ -76,6 +77,15 @@ const InventoryScreen: React.FC = () => {
     const context = useContext(DataContext);
     const [isModalOpen, setModalOpen] = useState(false);
     const [productToEdit, setProductToEdit] = useState<Product | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const filteredProducts = useMemo(() => {
+        if (!context?.products) return [];
+        return context.products.filter(p =>
+            p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            p.id.includes(searchTerm)
+        );
+    }, [context?.products, searchTerm]);
 
     const handleFormSubmit = (productData: Omit<Product, 'id' | 'imageUrl'>, id?: string) => {
         if (id) {
@@ -110,34 +120,58 @@ const InventoryScreen: React.FC = () => {
                 </button>
             </div>
 
-            <div className="bg-white rounded-lg shadow-md overflow-x-auto">
-                <table className="w-full text-sm text-right text-gray-500">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-50">
-                        <tr>
-                            <th scope="col" className="px-6 py-3">المنتج</th>
-                            <th scope="col" className="px-6 py-3">سعر البيع</th>
-                            <th scope="col" className="px-6 py-3">التكلفة</th>
-                            <th scope="col" className="px-6 py-3">المخزون</th>
-                            <th scope="col" className="px-6 py-3"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {context.products.map(product => {
-                             const isLowStock = product.stock <= product.lowStockThreshold;
-                             return (
-                                <tr key={product.id} className={`border-b ${isLowStock ? 'bg-red-50' : 'bg-white'}`}>
-                                    <th scope="row" className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">{product.name}</th>
-                                    <td className="px-6 py-4">{product.price.toFixed(2)} ر.س</td>
-                                    <td className="px-6 py-4">{product.cost.toFixed(2)} ر.س</td>
-                                    <td className={`px-6 py-4 font-bold ${isLowStock ? 'text-red-600' : 'text-gray-800'}`}>{product.stock}</td>
-                                    <td className="px-6 py-4 text-left">
-                                        <button onClick={() => handleEditClick(product)} className="font-medium text-primary hover:underline">تعديل</button>
-                                    </td>
+            <div className="mb-4 relative">
+                 <input
+                    type="text"
+                    placeholder="بحث في المخزون..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-primary"
+                />
+                 <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                       <SearchIcon className="w-5 h-5 text-gray-400" />
+                 </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-right text-gray-500">
+                        <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                            <tr>
+                                <th scope="col" className="px-6 py-3">المنتج</th>
+                                <th scope="col" className="px-6 py-3">السعر</th>
+                                <th scope="col" className="px-6 py-3">التكلفة</th>
+                                <th scope="col" className="px-6 py-3">المخزون</th>
+                                <th scope="col" className="px-6 py-3">إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredProducts.map(product => {
+                                 const isLowStock = product.stock <= product.lowStockThreshold;
+                                 return (
+                                    <tr key={product.id} className={`border-b hover:bg-gray-50 transition-colors ${isLowStock ? 'bg-red-50' : 'bg-white'}`}>
+                                        <th scope="row" className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
+                                            {product.name}
+                                            {isLowStock && <span className="mr-2 text-xs text-red-600 font-bold">(منخفض)</span>}
+                                        </th>
+                                        <td className="px-6 py-4">{product.price.toFixed(2)}</td>
+                                        <td className="px-6 py-4">{product.cost.toFixed(2)}</td>
+                                        <td className={`px-6 py-4 font-bold ${isLowStock ? 'text-red-600' : 'text-gray-800'}`}>{product.stock}</td>
+                                        <td className="px-6 py-4 flex space-x-2 space-x-reverse">
+                                            <button onClick={() => handleEditClick(product)} className="text-blue-600 hover:text-blue-900">تعديل</button>
+                                            <button onClick={() => { if(window.confirm('هل أنت متأكد من حذف هذا المنتج؟')) context.deleteProduct(product.id) }} className="text-red-600 hover:text-red-900">حذف</button>
+                                        </td>
+                                    </tr>
+                                 );
+                            })}
+                            {filteredProducts.length === 0 && (
+                                <tr>
+                                    <td colSpan={5} className="text-center py-4 text-gray-500">لا توجد منتجات مطابقة للبحث</td>
                                 </tr>
-                             );
-                        })}
-                    </tbody>
-                </table>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
             
             <Modal isOpen={isModalOpen} onClose={() => { setModalOpen(false); setProductToEdit(null); }} title={productToEdit ? 'تعديل منتج' : 'إضافة منتج جديد'}>
