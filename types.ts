@@ -1,21 +1,19 @@
 
 export interface Product {
-  id: string; // Can be barcode
+  id: string;
+  barcode?: string;
   name: string;
   price: number;
   cost: number;
   stock: number;
   lowStockThreshold: number;
-  supplierId?: string;
   imageUrl: string;
 }
 
 export interface Supplier {
   id: string;
   name: string;
-  contactPerson?: string;
   phone: string;
-  email?: string;
 }
 
 export interface Customer {
@@ -30,7 +28,7 @@ export interface DebtTransaction {
     id: string;
     date: string;
     amount: number;
-    type: 'DEBT' | 'REPAYMENT'; // دين جديد أو سداد
+    type: 'DEBT' | 'REPAYMENT';
     note?: string;
     saleId?: string;
 }
@@ -40,8 +38,9 @@ export interface StoreSettings {
     address: string;
     phone: string;
     vatNumber?: string;
-    taxRate: number; // Percentage (e.g., 15)
+    taxRate: number;
     footerText?: string;
+    autoPrint: boolean;
 }
 
 export enum PaymentType {
@@ -53,7 +52,7 @@ export enum PaymentType {
 export interface CartItem {
   productId: string;
   quantity: number;
-  price: number; // Price at the time of sale
+  price: number;
 }
 
 export interface Sale {
@@ -61,9 +60,8 @@ export interface Sale {
   items: CartItem[];
   totalAmount: number;
   paymentType: PaymentType;
-  date: string; // ISO 8601 format
-  discount?: number;
-  customerId?: string; // If sale is credit
+  date: string;
+  customerId?: string;
 }
 
 export type Screen = 'sales' | 'inventory' | 'reports' | 'suppliers' | 'debt' | 'settings';
